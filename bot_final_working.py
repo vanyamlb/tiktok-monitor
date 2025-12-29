@@ -198,9 +198,19 @@ def find_latest_video(username: str) -> str:
         video_files = []
 
         for ext in video_extensions:
-            pattern = f"{username}*{ext}"
-            files = list(Path(OUTPUT_DIR).glob(pattern))
-            video_files.extend(files)
+            # Try multiple patterns to catch different naming formats
+            patterns = [
+                f"{username}*{ext}",      # vasya.tv8*.mp4
+                f"*{username}*{ext}",     # TK_vasya.tv8*.mp4
+                f"TK_{username}*{ext}"    # TK_vasya.tv8*.mp4 (explicit)
+            ]
+
+            for pattern in patterns:
+                files = list(Path(OUTPUT_DIR).glob(pattern))
+                video_files.extend(files)
+
+        # Remove duplicates
+        video_files = list(set(video_files))
 
         if video_files:
             latest = max(video_files, key=lambda p: p.stat().st_mtime)
