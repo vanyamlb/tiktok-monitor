@@ -353,7 +353,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/add username - Add user to monitor\n"
         "/remove username - Remove user\n"
         "/list - Show monitored users\n"
-        "/status - Show status",
+        "/status - Show status\n"
+        "/stop username - Stop recording and send video",
         parse_mode='HTML'
     )
 
@@ -435,6 +436,59 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(message, parse_mode='HTML')
 
 
+async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /stop - Stop recording and send video"""
+    logger.info(f"✅ STOP from {update.effective_user.username}")
+
+    if not context.args:
+        await update.message.reply_text("Usage: /stop username")
+        return
+
+    username = context.args[0].strip().lstrip('@')
+
+    with recordings_lock:
+        if username not in active_recordings:
+            await update.message.reply_text(f"ℹ️ No active recording for @{username}")
+            return
+
+        # Get the process
+        process = active_recordings[username]
+
+        # Terminate the recording
+        try:
+            process.terminate()
+            logger.info(f"🛑 Stopped recording for {username}")
+            await update.message.reply_text(f"⏹️ Stopping recording for @{username}...\n📤 Uploading video...")
+
+            # Wait a moment for file to finalize
+            time.sleep(2)
+
+            # Remove from active recordings
+            del active_recordings[username]
+
+            # Find and upload the latest video
+            video_file = find_latest_video(username)
+
+            if video_file:
+                caption = (
+                    f"📹 <b>{username}</b> - Manual Stop\n"
+                    f"Stopped: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                )
+
+                if send_telegram_video(video_file, caption):
+                    await update.message.reply_text(f"✅ Video uploaded for @{username}")
+                    logger.info(f"✅ Uploaded manually stopped recording: {username}")
+                else:
+                    await update.message.reply_text(f"⚠️ Recording saved but upload failed: {username}")
+            else:
+                await update.message.reply_text(f"⚠️ No video found for @{username}")
+                logger.warning(f"⚠️ No video found for {username}")
+
+        except Exception as e:
+            logger.error(f"❌ Error stopping recording: {e}")
+            await update.message.reply_text(f"❌ Error stopping recording: {str(e)}")
+
+
 def main():
     """Main entry point"""
 
@@ -470,6 +524,7 @@ def main():
     application.add_handler(CommandHandler("remove", remove_command))
     application.add_handler(CommandHandler("list", list_command))
     application.add_handler(CommandHandler("status", status_command))
+    application.add_handler(CommandHandler("stop", stop_command))
 
     logger.info("✅ Bot started - send /start to @tiksnzbot")
 
