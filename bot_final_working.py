@@ -446,6 +446,31 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(message, parse_mode='HTML')
 
 
+async def files_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /files - Debug: list recordings directory"""
+    logger.info(f"✅ FILES from {update.effective_user.username}")
+
+    try:
+        if not Path(OUTPUT_DIR).exists():
+            await update.message.reply_text(f"⚠️ Directory {OUTPUT_DIR} does not exist")
+            return
+
+        all_files = list(Path(OUTPUT_DIR).glob("*"))
+
+        if not all_files:
+            await update.message.reply_text(f"📁 Directory {OUTPUT_DIR} is empty")
+            return
+
+        files_list = "\n".join([f"• {f.name} ({f.stat().st_size // 1024 // 1024}MB)" for f in all_files[:10]])
+        await update.message.reply_text(
+            f"📁 <b>Files in {OUTPUT_DIR}:</b>\n\n{files_list}",
+            parse_mode='HTML'
+        )
+    except Exception as e:
+        logger.error(f"❌ Error listing files: {e}")
+        await update.message.reply_text(f"❌ Error: {str(e)}")
+
+
 async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle /stop - Stop recording and send video"""
     logger.info(f"✅ STOP from {update.effective_user.username}")
@@ -468,18 +493,26 @@ async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             process.terminate()
             logger.info(f"🛑 Stopped recording for {username}")
-            await update.message.reply_text(f"⏹️ Stopping recording for @{username}...\n📤 Uploading video...")
+            await update.message.reply_text(f"⏹️ Stopping recording for @{username}...\n📤 Looking for video...")
 
             # Wait a moment for file to finalize
-            time.sleep(2)
+            time.sleep(3)
 
             # Remove from active recordings
             del active_recordings[username]
+
+            # List all files in recordings dir for debugging
+            try:
+                all_files = list(Path(OUTPUT_DIR).glob("*"))
+                logger.info(f"📁 Files in {OUTPUT_DIR}: {[f.name for f in all_files]}")
+            except Exception as e:
+                logger.error(f"❌ Error listing files: {e}")
 
             # Find and upload the latest video
             video_file = find_latest_video(username)
 
             if video_file:
+                logger.info(f"📹 Found video: {video_file}")
                 caption = (
                     f"📹 <b>{username}</b> - Manual Stop\n"
                     f"Stopped: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
@@ -491,8 +524,12 @@ async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 else:
                     await update.message.reply_text(f"⚠️ Recording saved but upload failed: {username}")
             else:
-                await update.message.reply_text(f"⚠️ No video found for @{username}")
-                logger.warning(f"⚠️ No video found for {username}")
+                # Debug: list what files we tried to find
+                logger.warning(f"⚠️ No video found for {username} in {OUTPUT_DIR}")
+                await update.message.reply_text(
+                    f"⚠️ No video found for @{username}\n"
+                    f"Check Railway logs for file list"
+                )
 
         except Exception as e:
             logger.error(f"❌ Error stopping recording: {e}")
@@ -535,6 +572,7 @@ def main():
     application.add_handler(CommandHandler("list", list_command))
     application.add_handler(CommandHandler("status", status_command))
     application.add_handler(CommandHandler("stop", stop_command))
+    application.add_handler(CommandHandler("files", files_command))
 
     logger.info("✅ Bot started - send /start to @tiksnzbot")
 
