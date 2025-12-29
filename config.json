@@ -1,13 +1,10 @@
 {
   "telegram": {
-    "bot_token": "8108905704:AAEh_P89w9bFZsR8NjvhVcKGn69sRiXYpLU",
+    "bot_token": "8573121438:AAGzUXeI_zX2cCVHVoIzsC18QRUAsW2N6IU",
     "chat_id": "@apsnyrec",
     "enabled": true
   },
-  "tiktok_users": [
-    "example_user1",
-    "example_user2"
-  ],
+  "tiktok_users": [],
   "recording": {
     "output_directory": "./recordings",
     "check_interval": 60,
