@@ -2,7 +2,6 @@
 __pycache__/
 *.pyc
 recordings/
-monitoring_list.json
 .DS_Store
 .claude/
 venv/
