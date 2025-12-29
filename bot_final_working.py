@@ -363,7 +363,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/add username - Add user to monitor\n"
         "/remove username - Remove user\n"
         "/list - Show monitored users\n"
-        "/status - Show status\n"
+        "/status - Show status\n\n"
+        "<b>Manual Control:</b>\n"
+        "/record username - Start recording now\n"
         "/stop username - Stop recording and send video",
         parse_mode='HTML'
     )
@@ -444,6 +446,37 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message += f"\n\n<b>Recording:</b>\n{active_text}"
 
     await update.message.reply_text(message, parse_mode='HTML')
+
+
+async def record_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /record - Manually start recording"""
+    logger.info(f"✅ RECORD from {update.effective_user.username}")
+
+    if not context.args:
+        await update.message.reply_text("Usage: /record username")
+        return
+
+    username = context.args[0].strip().lstrip('@')
+
+    with recordings_lock:
+        if username in active_recordings:
+            await update.message.reply_text(f"ℹ️ Already recording @{username}")
+            return
+
+    # Check if user is live
+    await update.message.reply_text(f"🔍 Checking if @{username} is live...")
+    is_live = check_user_live(username)
+
+    if is_live:
+        await update.message.reply_text(f"🔴 @{username} is LIVE!\n🎬 Starting recording...")
+        start_recording(username)
+        await update.message.reply_text(f"✅ Recording started for @{username}")
+        logger.info(f"✅ Manual recording started: {username}")
+    else:
+        await update.message.reply_text(
+            f"⚫ @{username} is not live right now\n"
+            f"Use /add {username} to monitor automatically"
+        )
 
 
 async def files_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -571,6 +604,7 @@ def main():
     application.add_handler(CommandHandler("remove", remove_command))
     application.add_handler(CommandHandler("list", list_command))
     application.add_handler(CommandHandler("status", status_command))
+    application.add_handler(CommandHandler("record", record_command))
     application.add_handler(CommandHandler("stop", stop_command))
     application.add_handler(CommandHandler("files", files_command))
 
