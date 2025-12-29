@@ -1,0 +1,21 @@
+{
+  "telegram": {
+    "bot_token": "8108905704:AAEh_P89w9bFZsR8NjvhVcKGn69sRiXYpLU",
+    "chat_id": "@apsnyrec",
+    "enabled": true
+  },
+  "tiktok_users": [
+    "example_user1",
+    "example_user2"
+  ],
+  "recording": {
+    "output_directory": "./recordings",
+    "check_interval": 60,
+    "automatic_interval": 5,
+    "duration": 0
+  },
+  "proxy": {
+    "enabled": false,
+    "http_proxy": ""
+  }
+}

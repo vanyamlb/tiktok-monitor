@@ -1,0 +1,14 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.log
+recordings/
+tiktok-live-recorder/
+.git
+.gitignore
+README.md
+*.md
+.DS_Store
+monitoring_list.json

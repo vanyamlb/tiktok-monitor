@@ -1,0 +1,10 @@
+services:
+  - type: worker
+    name: tiktok-monitor
+    env: python
+    plan: free
+    buildCommand: "./setup.sh"
+    startCommand: "python3 monitor_bot.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0

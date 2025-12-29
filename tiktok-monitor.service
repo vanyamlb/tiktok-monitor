@@ -1,0 +1,21 @@
+[Unit]
+Description=TikTok Live Monitor Bot
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USERNAME
+WorkingDirectory=/Users/vanyamlb/Desktop/tiktok
+ExecStart=/usr/bin/python3 /Users/vanyamlb/Desktop/tiktok/monitor_bot.py
+Restart=always
+RestartSec=10
+
+# Environment
+Environment="PATH=/usr/bin:/usr/local/bin"
+
+# Logging
+StandardOutput=append:/Users/vanyamlb/Desktop/tiktok/tiktok_monitor.log
+StandardError=append:/Users/vanyamlb/Desktop/tiktok/tiktok_monitor.log
+
+[Install]
+WantedBy=multi-user.target

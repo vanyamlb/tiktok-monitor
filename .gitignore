@@ -1,0 +1,7 @@
+*.log
+__pycache__/
+*.pyc
+recordings/
+monitoring_list.json
+.DS_Store
+.claude/
