@@ -1,1 +1,1 @@
-worker: python3 monitor_bot.py
+worker: python3 bot_final_working.py

@@ -7,7 +7,7 @@
   "tiktok_users": [],
   "recording": {
     "output_directory": "./recordings",
-    "check_interval": 60,
+    "check_interval": 10,
     "automatic_interval": 5,
     "duration": 0
   },
