@@ -111,6 +111,21 @@ def send_telegram_message(message: str):
 def send_telegram_video(video_path: str, caption: str):
     """Upload video to Telegram channel"""
     try:
+        # Check if file exists
+        if not Path(video_path).exists():
+            logger.error(f"❌ File not found: {video_path}")
+            return False
+
+        # Check file size
+        file_size = Path(video_path).stat().st_size
+        file_size_mb = file_size / 1024 / 1024
+        logger.info(f"📊 File size: {file_size_mb:.2f}MB")
+
+        # Telegram bot API has 50MB limit
+        if file_size_mb > 50:
+            logger.error(f"❌ File too large: {file_size_mb:.2f}MB (limit: 50MB)")
+            return False
+
         bot_token = config['telegram']['bot_token']
         chat_id = config['telegram']['chat_id']
 
@@ -125,16 +140,19 @@ def send_telegram_video(video_path: str, caption: str):
             }
 
             logger.info(f"📤 Uploading: {Path(video_path).name}")
-            response = requests.post(url, data=data, files=files, timeout=300)
+            response = requests.post(url, data=data, files=files, timeout=600)
 
             if response.status_code == 200:
                 logger.info("✅ Video uploaded!")
                 return True
             else:
-                logger.error(f"❌ Upload failed")
+                logger.error(f"❌ Upload failed: HTTP {response.status_code}")
+                logger.error(f"❌ Response: {response.text}")
                 return False
     except Exception as e:
         logger.error(f"❌ Upload error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return False
 
 
@@ -546,16 +564,32 @@ async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             if video_file:
                 logger.info(f"📹 Found video: {video_file}")
+
+                # Get file size
+                file_size_mb = Path(video_file).stat().st_size / 1024 / 1024
+
                 caption = (
                     f"📹 <b>{username}</b> - Manual Stop\n"
-                    f"Stopped: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                    f"Stopped: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                    f"Size: {file_size_mb:.1f}MB"
                 )
 
                 if send_telegram_video(video_file, caption):
                     await update.message.reply_text(f"✅ Video uploaded for @{username}")
                     logger.info(f"✅ Uploaded manually stopped recording: {username}")
                 else:
-                    await update.message.reply_text(f"⚠️ Recording saved but upload failed: {username}")
+                    # Check if file is too large
+                    if file_size_mb > 50:
+                        await update.message.reply_text(
+                            f"⚠️ Video too large: {file_size_mb:.1f}MB\n"
+                            f"Telegram limit: 50MB\n"
+                            f"File saved on server: {Path(video_file).name}"
+                        )
+                    else:
+                        await update.message.reply_text(
+                            f"⚠️ Upload failed ({file_size_mb:.1f}MB)\n"
+                            f"Check Railway logs for details"
+                        )
             else:
                 # Debug: list what files we tried to find
                 logger.warning(f"⚠️ No video found for {username} in {OUTPUT_DIR}")
